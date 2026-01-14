@@ -1,0 +1,141 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- --- CONFIG ---
+local Config = {
+    Bhop = false
+}
+
+-- --- LIMPEZA ---
+for _, gui in pairs(CoreGui:GetChildren()) do
+    if gui.Name == "BatataRetroV10" then gui:Destroy() end
+end
+
+-- --- GUI SETUP ---
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BatataRetroV10"
+if gethui then ScreenGui.Parent = gethui() else ScreenGui.Parent = CoreGui end
+
+-- PAINEL PRINCIPAL (Arrastável)
+local Main = Instance.new("Frame")
+Main.Name = "MainFrame"
+Main.Size = UDim2.new(0, 220, 0, 100) -- Tamanho Aberto
+Main.Position = UDim2.new(0.1, 0, 0.3, 0)
+Main.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Fundo preto para as bordas
+Main.BorderSizePixel = 2
+Main.Active = true; Main.Draggable = true
+Main.Parent = ScreenGui
+
+-- --- BARRA SUPERIOR (Controles) ---
+
+-- 1. BOTÃO FECHAR [X] (Vermelho)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 40, 0, 30)
+CloseBtn.Position = UDim2.new(0, 0, 0, 0)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.new(1,1,1)
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.TextSize = 20
+CloseBtn.BorderSizePixel = 1
+CloseBtn.Parent = Main
+
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+-- 2. BOTÃO MINIMIZAR [-] (Azul Claro)
+local MiniBtn = Instance.new("TextButton")
+MiniBtn.Size = UDim2.new(0, 40, 0, 30)
+MiniBtn.Position = UDim2.new(0, 40, 0, 0) -- Ao lado do X
+MiniBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+MiniBtn.Text = "-"
+MiniBtn.TextColor3 = Color3.new(0,0,0)
+MiniBtn.Font = Enum.Font.SourceSansBold
+MiniBtn.TextSize = 30 -- Texto grande pro traço
+MiniBtn.BorderSizePixel = 1
+MiniBtn.Parent = Main
+
+-- 3. TÍTULO (Roxo)
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -80, 0, 30) -- Ocupa o resto
+Title.Position = UDim2.new(0, 80, 0, 0)
+Title.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+Title.Text = "BATATA v10"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 16
+Title.BorderSizePixel = 1
+Title.Parent = Main
+
+-- --- ÁREA DE CONTEÚDO (Botão de Pulo) ---
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(1, 0, 1, -30) -- Todo o espaço menos a barra
+ContentFrame.Position = UDim2.new(0, 0, 0, 30)
+ContentFrame.BackgroundColor3 = Color3.new(0,0,0)
+ContentFrame.BorderSizePixel = 0
+ContentFrame.Parent = Main
+
+-- BOTÃO DE PULO (Amarelo/Verde)
+local JumpBtn = Instance.new("TextButton")
+JumpBtn.Size = UDim2.new(1, -10, 1, -10) -- Margem de 5px
+JumpBtn.Position = UDim2.new(0, 5, 0, 5)
+JumpBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Amarelo (OFF)
+JumpBtn.Text = "AUTO PULO: OFF"
+JumpBtn.TextColor3 = Color3.new(0,0,0)
+JumpBtn.Font = Enum.Font.SourceSansBold
+JumpBtn.TextSize = 20
+JumpBtn.Parent = ContentFrame
+
+-- --- LÓGICA DE MINIMIZAR ---
+local isMinimized = false
+
+MiniBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        -- Minimiza: Some o conteúdo e diminui altura
+        ContentFrame.Visible = false
+        Main:TweenSize(UDim2.new(0, 220, 0, 30), "Out", "Quad", 0.3, true)
+        MiniBtn.Text = "+"
+    else
+        -- Maximiza: Mostra conteúdo e aumenta altura
+        Main:TweenSize(UDim2.new(0, 220, 0, 100), "Out", "Quad", 0.3, true)
+        task.wait(0.3) -- Espera animação pra mostrar o botão
+        ContentFrame.Visible = true
+        MiniBtn.Text = "-"
+    end
+end)
+
+-- --- LÓGICA DO PULO (ATIVAR/DESATIVAR) ---
+JumpBtn.MouseButton1Click:Connect(function()
+    Config.Bhop = not Config.Bhop
+    if Config.Bhop then
+        JumpBtn.Text = "AUTO PULO: ON"
+        JumpBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Verde
+    else
+        JumpBtn.Text = "AUTO PULO: OFF"
+        JumpBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Amarelo
+    end
+end)
+
+-- --- LOOP DE PULO (FORCE STATE) ---
+RunService.RenderStepped:Connect(function()
+    if Config.Bhop then
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            
+            -- Segurou Espaço?
+            if hum and UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                local state = hum:GetState()
+                -- Se não estiver voando nem pulando, força o pulo
+                if state ~= Enum.HumanoidStateType.Jumping and state ~= Enum.HumanoidStateType.Freefall then
+                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end
+        end
+    end
+end)
+
+print("🥔 BATATA RETRO v10: Pronta para usar!")
